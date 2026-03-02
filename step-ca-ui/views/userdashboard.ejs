@@ -1,1 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>User Dashboard</title>
+  <link rel="icon" href="/c-a.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-[Poppins] flex flex-col">
 
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white shadow-xl hidden md:flex flex-col justify-between fixed h-full">
+    <div>
+      <div class="px-6 py-4 text-center border-b">
+        <h1 class="text-xl font-bold text-blue-600">CA Portal</h1>
+      </div>
+      <nav class="mt-6 space-y-1">
+        <button onclick="showSection('welcome')" class="w-full text-left px-6 py-3 hover:bg-blue-50 rounded-lg">🏠 Dashboard</button>
+        <button onclick="showSection('request')" class="w-full text-left px-6 py-3 hover:bg-blue-50 rounded-lg">📩 Request Certificate</button>
+        <button onclick="showSection('certs')" class="w-full text-left px-6 py-3 hover:bg-blue-50 rounded-lg">📜 My Certificates</button>
+        <button onclick="showSection('support')" class="w-full text-left px-6 py-3 hover:bg-blue-50 rounded-lg">💬 Support</button>
+      </nav>
+    </div>
+    <div class="px-6 py-4 border-t">
+      <a href="/logout" class="flex items-center text-red-600 font-medium hover:text-red-800">
+        🚪 Logout
+      </a>
+    </div>
+  </aside>
+
+  <!-- Mobile Navbar -->
+  <div class="md:hidden fixed top-0 left-0 w-full bg-white shadow flex justify-between items-center px-4 py-3 z-50">
+    <h1 class="text-lg font-bold text-blue-600">CA Portal</h1>
+    <button id="menuBtn" class="text-2xl">☰</button>
+  </div>
+
+  <!-- Mobile Sidebar -->
+  <div id="mobileMenu" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40">
+    <div class="w-64 bg-white h-full shadow-xl p-6">
+      <button id="closeMenu" class="mb-6 text-xl">✖</button>
+      <nav class="space-y-4">
+        <button onclick="showSection('welcome');closeMobileMenu()" class="block w-full text-left">🏠 Dashboard</button>
+        <button onclick="showSection('request');closeMobileMenu()" class="block w-full text-left">📩 Request Certificate</button>
+        <button onclick="showSection('certs');closeMobileMenu()" class="block w-full text-left">📜 My Certificates</button>
+        <button onclick="showSection('support');closeMobileMenu()" class="block w-full text-left">💬 Support</button>
+        <a href="/logout" class="block text-red-600">🚪 Logout</a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="flex-1 md:ml-64 p-6 mt-12 md:mt-0">
+    <div class="bg-white shadow-lg rounded-2xl p-8 animate-fadeIn">
+
+      <!-- Section: Welcome -->
+      <div id="section-welcome" class="section">
+        <h2 class="text-2xl font-bold text-blue-700 mb-3">
+          🌐 WELCOME <%= user.username %> TO DIGITAL CERTIFICATE AUTHORITY SYSTEM
+        </h2>
+        <p class="text-gray-600 leading-relaxed">
+          This platform allows you to request, manage, and renew your digital certificates with ease.  
+          Our Digital Certificate Authority System ensures trust, authenticity, and secure communication across your personal and professional needs.  
+          With automated workflows, audit logs, and strong encryption, we make certificate issuance and management hassle-free.  
+        </p>
+      </div>
+
+      <!-- Section: Request Certificate -->
+      <div id="section-request" class="section hidden">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Request a Certificate</h3>
+        <form method="POST" action="/certificates/request" class="flex flex-col sm:flex-row gap-3">
+          <input 
+            type="text" 
+            name="subject" 
+            placeholder="Enter Subject (e.g. Ali, Company)" 
+            required
+            class="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          />
+          <button 
+            type="submit" 
+            class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow hover:from-blue-600 hover:to-indigo-700 transition"
+          >
+            Request
+          </button>
+        </form>
+      </div>
+
+      <!-- Section: My Certificates -->
+      <div id="section-certs" class="section hidden">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">My Certificates</h3>
+        <div class="overflow-hidden rounded-xl shadow">
+          <table class="min-w-full bg-white">
+            <thead class="bg-gray-100 text-gray-700 text-sm uppercase">
+              <tr>
+                <th class="py-3 px-4 text-left">User</th>
+                <th class="py-3 px-4 text-left">Subject</th>
+                <th class="py-3 px-4 text-left">Status</th>
+                <th class="py-3 px-4 text-left">Issued On</th>
+                <th class="py-3 px-4 text-left">Expires On</th>
+                <th class="py-3 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 text-sm">
+              <% if (certs && certs.length > 0) { %>
+                <% certs.forEach(c => { %>
+                  <tr class="hover:bg-blue-50">
+                    <td class="py-3 px-4"><%= c.owner %></td>
+                    <td class="py-3 px-4"><%= c.fileName %></td>
+                    <td class="py-3 px-4">
+                      <span class="px-3 py-1 rounded-full text-xs font-medium
+                        <%= c.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 
+                            c.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                            c.status === 'REVOKED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700' %>">
+                        <%= c.status %>
+                      </span>
+                    </td>
+                    <td class="py-3 px-4"><%= c.issued_at %></td>
+                    <td class="py-3 px-4"><%= c.expiryDate %></td>
+                    <td class="py-3 px-4 text-center">
+                      <a href="/certs/download/<%= c.id %>" class="btn btn-sm btn-primary">⬇️ Download</a>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } else { %>
+                <tr>
+                  <td colspan="6" class="py-4 px-4 text-center text-gray-500">No certificates found.</td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section: Support -->
+      <div id="section-support" class="section hidden">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Support</h3>
+        <p class="text-gray-600 mb-4">For any queries or issues, you can reach out to the system owner:</p>
+        <ul class="mb-6 text-gray-700">
+          <li><b>Owner:</b> Moazam</li>
+          <li><b>Email:</b> bc200408672@vu.edu.pk</li>
+          <li><b>Phone:</b> +92-300-1234567</li>
+        </ul>
+
+        <!-- Send message form -->
+        <form method="POST" action="/support" class="space-y-3 mb-8">
+          <textarea name="message" rows="4" placeholder="Write your message here..." required class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"></textarea>
+          <button type="submit" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl shadow hover:bg-blue-700">
+            Send Message
+          </button>
+        </form>
+
+        <!-- User messages + replies -->
+        <h4 class="text-lg font-semibold text-gray-700 mb-3">📩 My Messages</h4>
+        <div class="overflow-hidden rounded-xl shadow">
+          <table class="min-w-full bg-white">
+            <thead class="bg-gray-100 text-gray-700 text-sm uppercase">
+              <tr>
+                <th class="py-3 px-4 text-left">Message</th>
+                <th class="py-3 px-4 text-left">Sent At</th>
+                <th class="py-3 px-4 text-left">Reply</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 text-sm">
+              <% if (messages && messages.length > 0) { %>
+                <% messages.forEach(m => { %>
+                  <tr class="hover:bg-blue-50">
+                    <td class="py-3 px-4"><%= m.message %></td>
+                    <td class="py-3 px-4"><%= m.created_at %></td>
+                    <td class="py-3 px-4">
+                      <% if (m.reply) { %>
+                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                          <%= m.reply %>
+                        </span>
+                        <div class="text-gray-500 text-xs mt-1">at <%= m.replied_at %></div>
+                      <% } else { %>
+                        <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                          Waiting for reply...
+                        </span>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } else { %>
+                <tr>
+                  <td colspan="3" class="py-4 px-4 text-center text-gray-500">No messages found.</td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white text-center py-4 mt-8">
+    © <%= new Date().getFullYear() %> Digital Certificate Authority System. All rights reserved.
+  </footer>
+
+  <script>
+    // Toggle between sections
+    function showSection(section) {
+      document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+      document.getElementById('section-' + section).classList.remove('hidden');
+    }
+
+    // Mobile menu toggle
+    const menuBtn = document.getElementById("menuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+    const closeMenu = document.getElementById("closeMenu");
+
+    if (menuBtn && mobileMenu && closeMenu) {
+      menuBtn.addEventListener("click", () => mobileMenu.classList.remove("hidden"));
+      closeMenu.addEventListener("click", () => mobileMenu.classList.add("hidden"));
+    }
+    function closeMobileMenu(){ mobileMenu.classList.add("hidden"); }
+
+    // SweetAlert for actions
+    const urlParams = new URLSearchParams(window.location.search);
+    const msg = urlParams.get("msg");
+    if (msg === "request_submitted") {
+      Swal.fire("✅ Request Submitted", "Your request has been submitted successfully!", "success");
+      showSection("certs"); 
+    }
+    if (msg === "support_sent") {
+      Swal.fire("✅ Message Sent", "Your support request has been submitted successfully!", "success");
+      showSection("support"); 
+    }
+  </script>
+
+  <!-- Expiring Soon Alert -->
+  <% if (expiringSoon && expiringSoon.length > 0) { %>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      Swal.fire({
+        icon: "warning",
+        title: "⚠️ Certificate Expiring Soon",
+        html: `
+          <div style="text-align:left;">
+            <p>The following certificate(s) are expiring soon:</p>
+            <ul style="margin-top:10px; list-style-type:disc; margin-left:20px;">
+              <% expiringSoon.forEach(c => { %>
+                <li>
+                  <b><%= c.fileName %></b> (Serial: <%= c.serial %>)<br>
+                  <small>Expires On:</b> <%= new Date(c.expiryDate).toLocaleString('en-GB', { 
+  day: 'numeric', 
+  month: 'short', 
+  year: 'numeric', 
+  hour: 'numeric', 
+  minute: '2-digit', 
+  hour12: true 
+}) %>
+</small>
+                </li>
+              <% }) %>
+            </ul>
+            <p style="margin-top:10px; color:#555;">Please renew them to avoid interruption.</p>
+          </div>
+        `,
+        confirmButtonText: "Got it",
+        confirmButtonColor: "red",
+      });
+    });
+  </script>
+  <% } %>
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn { animation: fadeIn 0.4s ease-in-out; }
+  </style>
+</body>
+</html>
