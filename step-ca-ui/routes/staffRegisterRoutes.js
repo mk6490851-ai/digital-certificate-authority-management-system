@@ -59,7 +59,7 @@ router.post("/staff/send-otp", async (req, res) => {
     console.error("Error sending OTP:", err);
     res.status(500).json({ success: false, message: "Error sending OTP. Try again later." });
   }
-}); // ✅ ← THIS LINE WAS MISSING
+});
 
 // ================== REGISTER ==================
 router.post("/staff/register", async (req, res) => {
